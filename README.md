@@ -22,8 +22,8 @@ from ppdrive import PPDriveClient
 with PPDriveClient("http://localhost:8000", "YOUR_CLIENT_TOKEN") as client:
     # Create a bucket
     bucket = client.create_bucket(
-        label="Documents",
-        root_path="storage/docs",
+        name="Documents",
+        path="storage/docs",
         public=False,
     )
     
@@ -166,7 +166,7 @@ except PPDriveError as e:
 | `download_file(bucket, path, **opts)` | Download a private file |
 | `download_public_file(url)` | Download from a public bucket |
 | `sign_download_url(bucket, path, expires=...)` | Return a signed download URL |
-| `create_bucket(label=..., **opts)` | Create a bucket, returns its PID |
+| `create_bucket(name=..., path=..., **opts)` | Create a bucket, returns its PID |
 | `grant_permission(bucket, **opts)` | Grant a file-level permission |
 | `revoke_permission(bucket, **opts)` | Revoke a file-level permission |
 | `list_permissions(bucket, path=None)` | List permissions |

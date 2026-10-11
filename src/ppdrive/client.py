@@ -56,12 +56,19 @@ class PPDriveClient:
         target_filesize: int | None = None,
         overwrite: bool | None = None,
         create_parents: bool | None = None,
-        expires: int | None = None,
+        expires: int = 120,
         accepts: str | None = None,
         public: bool | None = None,
         asset_type: str = "File",
     ) -> str:
-        """Create an upload session and return the signed upload URL."""
+        """Create an upload session and return the signed upload URL.
+
+        The server requires:
+
+        - ``expires`` (seconds, 30–86400)
+        - ``target_filesize`` when ``asset_type`` is ``"File"``
+        - ``content_type`` when ``bucket`` is ``None`` (static upload)
+        """
         body = compact(
             asset_type=asset_type,
             path=path,
@@ -88,7 +95,7 @@ class PPDriveClient:
         create_parents: bool | None = None,
         resumable: bool | None = None,
         chunk_size: int = 1 << 20,
-        expires: int | None = None,
+        expires: int = 120,
         accepts: str | None = None,
         public: bool | None = None,
         on_progress: Callable[[int, int], None] | None = None,
@@ -144,7 +151,7 @@ class PPDriveClient:
         bucket: str | None = None,
         overwrite: bool | None = None,
         create_parents: bool | None = None,
-        expires: int | None = None,
+        expires: int = 120,
     ) -> None:
         """Create a folder on the server."""
         upload_url = self.sign_upload_url(
@@ -206,20 +213,24 @@ class PPDriveClient:
     def create_bucket(
         self,
         *,
-        label: str,
-        root_path: str | None = None,
+        name: str,
+        path: str,
         public: bool | None = None,
         size: float | None = None,
         accepts: str | None = None,
     ) -> str:
         """Create a bucket and return its PID.
 
-        ``accepts`` is a single comma-separated string, e.g.
-        ``"custom:application/zip,audio/3gpp"``.
+        The server requires ``name`` and ``path``. ``path`` must be a
+        relative path inside the server's storage root (no leading slash,
+        no ``..``). ``accepts`` is a single comma-separated string, e.g.
+        ``"application/pdf,image/*"``.
+
+        The owning client is inferred from the ``x-ppdrive-client`` token.
         """
         body = compact(
-            label=label,
-            root_path=root_path,
+            name=name,
+            path=path,
             public=public,
             size=size,
             accepts=accepts,
@@ -281,6 +292,14 @@ class PPDriveClient:
     # Auth
     # ------------------------------------------------------------------
 
-    def login(self, **credentials: Any) -> Any:
-        """Authenticate against ``POST /auth/login``."""
-        return self._core.request("POST", "/auth/login", json=credentials)
+    def login(self, *, email: str, password: str) -> Any:
+        """Authenticate against ``POST /auth/login``.
+
+        Returns the server's login response (typically a token or user info).
+        Raises :class:`AuthenticationError` on invalid credentials.
+        """
+        return self._core.request(
+            "POST",
+            "/auth/login",
+            json={"email": email, "password": password},
+        )
